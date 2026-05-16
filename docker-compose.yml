@@ -1,0 +1,44 @@
+services:
+
+  # Contenedor 1: Base de datos PostgreSQL
+  bdcalendario:
+    build:
+      context: ./BD
+    container_name: dockerbdcalendario
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: calendariolaboral1
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+    ports:
+      - "5434:5432"         
+    networks:
+      - redcalendario
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d calendariolaboral1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Contenedor 2: API Spring Boot
+  apicalendario:
+    build:
+      context: ./publicacion
+    container_name: dockerapicalendario
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://bdcalendario:5432/calendariolaboral1
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123
+    ports:
+      - "3002:8081"        
+    depends_on:
+      bdcalendario:
+        condition: service_healthy
+    networks:
+      - redcalendario
+
+networks:
+  redcalendario:
+    driver: bridge
